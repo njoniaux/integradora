@@ -76,7 +76,7 @@
     "message": "Hola, ¿cómo estás?",
     "datasource": "nombre_fuente_datos",
     "config": {
-      "model": "gpt-4",
+      "model": "gpt-4o",
       "temperature": 0.7,
       "maxTokens": 2000
     }
