@@ -1,6 +1,6 @@
 ## IMPORTANTE
 
-Usar: export OPENAI_API_KEY="sk-proj-Z0Fyr4N6K4MOwmqA2SsaT3BlbkFJlfPRV5ysme6uZlYl3hOR"
+Usar: export OPENAI_API_KEY="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"
 
 ## Endpoints
 
