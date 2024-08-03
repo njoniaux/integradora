@@ -35,7 +35,7 @@ def llm_from_config(config: Optional[LLMConfig]):
             max_tokens=config.maxTokens,
         )
     else:
-        return OpenAI(model="gpt-4")
+        return OpenAI(model="gpt-3.5-turbo-16k")
 
 @chat_router.post("")
 async def chat(
@@ -51,15 +51,15 @@ async def chat(
         )
 
     index = get_index(service_context, data.datasource)
-    
+    print(index)
     messages = data.messages or []
 
+    query_engine = index.as_query_engine()
+    response = query_engine.query(data.message)
+
+    print(response)
+
     chat_engine = index.as_chat_engine()
-    response = chat_engine.stream_chat(data.message, messages)
+    response = chat_engine.chat(data.message, messages)
 
-    async def event_generator():
-        for token in response.response_gen:
-            yield f"data: {token}\n\n"
-        yield "data: [DONE]\n\n"
-
-    return StreamingResponse(event_generator(), media_type="text/event-stream")
+    return response

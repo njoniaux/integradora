@@ -1,22 +1,24 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
-from pydantic import BaseModel
+from pydantic import BaseModel, validator
 from datetime import datetime, timedelta
-import os
-from dotenv import load_dotenv
 import sqlite3
 import bcrypt
-
-load_dotenv()
+from enum import Enum
 
 SECRET_KEY = "asdasd123123"
-ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
-ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 3600
 
 auth_router = APIRouter()
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+
+class Role(str, Enum):
+    STUDENT = "STUDENT"
+    TEACHER = "TEACHER"
+    ADMIN = "ADMIN"
 
 class Token(BaseModel):
     access_token: str
@@ -24,9 +26,24 @@ class Token(BaseModel):
 
 class User(BaseModel):
     email: str
-    role: str
+    role: Role
 
 class UserInDB(User):
+    password: str
+
+class UserRegister(BaseModel):
+    email: str
+    password: str
+    role: Role
+
+    @validator('role')
+    def validate_role(cls, v):
+        if v not in Role.__members__.values():
+            raise ValueError('Invalid role')
+        return v
+    
+class UserLogin(BaseModel):
+    email: str
     password: str
 
 def get_user(email: str):
@@ -57,12 +74,12 @@ def create_access_token(data: dict, expires_delta: timedelta = None):
     return encoded_jwt
 
 @auth_router.post("/token", response_model=Token)
-async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
-    user = authenticate_user(form_data.username, form_data.password)
+async def login_for_access_token(user_data: UserLogin):
+    user = authenticate_user(user_data.email, user_data.password)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
+            detail="Incorrect email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -72,30 +89,19 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     return {"access_token": access_token, "token_type": "bearer"}
 
 @auth_router.post("/register")
-async def register(email: str, password: str):
+async def register(user: UserRegister):
     conn = sqlite3.connect("user_database.db")
     cur = conn.cursor()
-    hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+    hashed_password = bcrypt.hashpw(user.password.encode('utf-8'), bcrypt.gensalt())
     try:
         cur.execute("INSERT INTO users (email, password, role) VALUES (?, ?, ?)", 
-                    (email, hashed_password.decode('utf-8'), "STUDENT"))
+                    (user.email, hashed_password.decode('utf-8'), user.role.value))
         conn.commit()
     except sqlite3.IntegrityError:
         conn.close()
         raise HTTPException(status_code=400, detail="Email already registered")
     conn.close()
     return {"message": "User registered successfully"}
-
-@auth_router.post("/change_role")
-async def change_role(email: str, new_role: str, current_user: User = Depends(get_current_user)):
-    if current_user.role != "ADMIN":
-        raise HTTPException(status_code=403, detail="Only admins can change roles")
-    conn = sqlite3.connect("user_database.db")
-    cur = conn.cursor()
-    cur.execute("UPDATE users SET role = ? WHERE email = ?", (new_role, email))
-    conn.commit()
-    conn.close()
-    return {"message": f"Role updated for {email}"}
 
 async def get_current_user(token: str = Depends(oauth2_scheme)):
     credentials_exception = HTTPException(
@@ -112,6 +118,21 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         return User(email=email, role=role)
     except JWTError:
         raise credentials_exception
+
+class ChangeRoleRequest(BaseModel):
+    email: str
+    new_role: Role
+
+@auth_router.post("/change_role")
+async def change_role(request: ChangeRoleRequest, current_user: User = Depends(get_current_user)):
+    if current_user.role != Role.ADMIN:
+        raise HTTPException(status_code=403, detail="Only admins can change roles")
+    conn = sqlite3.connect("user_database.db")
+    cur = conn.cursor()
+    cur.execute("UPDATE users SET role = ? WHERE email = ?", (request.new_role.value, request.email))
+    conn.commit()
+    conn.close()
+    return {"message": f"Role updated for {request.email}"}
 
 def role_required(allowed_roles: list):
     def decorator(func):
