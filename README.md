@@ -1,25 +1,36 @@
+##Build docker
+docker build -t backend_tutoria .
+
+##Run
+
+docker run -p 8000:8000 backend_tutoria
+
 ## Endpoints
 
 ### Autenticación (/auth)
 
-#### Registro de usuario
-- **Método:** POST
-- **Ruta:** `/auth/register`
-- **Cuerpo:**
+### User Registration
+- **Method:** POST
+- **Route:** `/auth/register`
+- **Body:**
   ```json
   {
-    "email": "usuario@ejemplo.com",
-    "password": "contraseña123"
+    "email": "user@example.com",
+    "password": "password123",
+    "role": "STUDENT"
   }
   ```
+- **Note:** Available roles are "ADMIN", "TEACHER", and "STUDENT".
 
-#### Inicio de sesión
-- **Método:** POST
-- **Ruta:** `/auth/token`
-- **Cuerpo:** (form-data)
-  ```
-  username: usuario@ejemplo.com
-  password: contraseña123
+### User Login
+- **Method:** POST
+- **Route:** `/auth/token`
+- **Body:**
+  ```json
+  {
+    "email": "user@example.com",
+    "password": "password123"
+  }
   ```
 
 #### Cambio de rol (solo para administradores)
@@ -38,7 +49,7 @@
 
 #### Subida de archivos
 - **Método:** POST
-- **Ruta:** `/api/datasource/upload`
+- **Ruta:** `/datasource/upload`
 - **Encabezados:** `Authorization: Bearer <token>`
 - **Cuerpo:** form-data con archivos
 
@@ -53,7 +64,19 @@ Multipart formdata con forma:
     ...
   ],
   "datasource_name": "name_of_your_datasource"
+
 }
+
+### Upload Files and Create Data Source
+- **Method:** POST
+- **Route:** `/datasource/upload`
+- **Headers:** `Authorization: Bearer <token>`
+- **Body:** Multipart form-data
+  ```
+  files: (binary data of PDF files)
+  datasource_name: "name_of_your_datasource"
+  ```
+- **Note:** Only PDF files are accepted.
 
 ### Chat (/api/chat)
 
@@ -67,7 +90,7 @@ Multipart formdata con forma:
     "message": "Hola, ¿cómo estás?",
     "datasource": "nombre_fuente_datos",
     "config": {
-      "model": "gpt-4o",
+      "model": "gpt-3.5-turbo-16k",
       "temperature": 0.7,
       "maxTokens": 2000
     }
@@ -83,11 +106,11 @@ curl -X POST http://localhost:8000/auth/register \
   -d '{"email": "usuario@ejemplo.com", "password": "contraseña123"}'
 ```
 
-### Inicio de sesión
+### Login Example
 ```bash
 curl -X POST http://localhost:8000/auth/token \
-  -F "username=usuario@ejemplo.com" \
-  -F "password=contraseña123"
+  -H "Content-Type: application/json" \
+  -d '{"email": "user@example.com", "password": "password123"}'
 ```
 
 ### Subida de archivos
