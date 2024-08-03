@@ -45,15 +45,9 @@ docker run -p 8000:8000 backend_tutoria
   }
   ```
 
-### Gestión de fuentes de datos (/api/datasource)
+### Gestión de fuentes de datos (/datasource)
 
-#### Subida de archivos
-- **Método:** POST
-- **Ruta:** `/datasource/upload`
-- **Encabezados:** `Authorization: Bearer <token>`
-- **Cuerpo:** form-data con archivos
-
-#### Crear fuente de datos
+#### Subir fuente de datos
 - **Método:** POST
 - **Ruta:** `/datasource/upload`
 Multipart formdata con forma:
