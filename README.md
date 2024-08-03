@@ -44,25 +44,16 @@
 
 #### Crear fuente de datos
 - **Método:** POST
-- **Ruta:** `/api/datasource/create`
-- **Encabezados:** `Authorization: Bearer <token>`
-- **Cuerpo:**
-  ```json
-  {
-    "name": "nombre_fuente_datos",
-    "session_id": "id_sesion_subida"
-  }
-  ```
-
-#### Listar fuentes de datos
-- **Método:** GET
-- **Ruta:** `/api/datasource/list`
-- **Encabezados:** `Authorization: Bearer <token>`
-
-#### Obtener detalles de una fuente de datos
-- **Método:** GET
-- **Ruta:** `/api/datasource/{nombre_fuente_datos}`
-- **Encabezados:** `Authorization: Bearer <token>`
+- **Ruta:** `/datasource/upload`
+Multipart formdata con forma:
+{
+  "files": [
+    (binary data of file 1),
+    (binary data of file 2),
+    ...
+  ],
+  "datasource_name": "name_of_your_datasource"
+}
 
 ### Chat (/api/chat)
 
