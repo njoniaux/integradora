@@ -4,17 +4,21 @@ FROM python:3.11-slim
 # Set the working directory in the container
 WORKDIR /app
 
-# Install poetry
-RUN pip install poetry
+# Copy the requirements file
+COPY requirements.txt .
 
-# Copy the pyproject.toml and poetry.lock files
-COPY pyproject.toml poetry.lock ./
+# Create and activate virtual environment
+RUN python -m venv venv
+ENV PATH="/app/venv/bin:$PATH"
 
 # Install project dependencies
-RUN poetry config virtualenvs.create false && poetry lock --no-update && poetry install --no-dev --no-interaction --no-ansi
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the rest of the application code
 COPY . .
+
+# Run database.py
+RUN python database.py
 
 # Expose the port the app runs on
 EXPOSE 8000
