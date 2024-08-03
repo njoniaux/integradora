@@ -1,3 +1,7 @@
+## IMPORTANTE
+
+Usar: export OPENAI_API_KEY="sk-proj-Z0Fyr4N6K4MOwmqA2SsaT3BlbkFJlfPRV5ysme6uZlYl3hOR"
+
 ## Endpoints
 
 ### Autenticación (/auth)
