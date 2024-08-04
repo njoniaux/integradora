@@ -83,3 +83,19 @@ async def generateDatasource(service_context: ServiceContext, datasource: str):
     )
     await asyncio.to_thread(index.storage_context.persist, ds_storage_dir)
     print(f"Finished creating new index. Stored in {ds_storage_dir}")
+
+@datasource_router.get("/list")
+@role_required(["ADMIN", "TEACHER"])  # Adjust roles as needed
+async def list_datasources():
+    try:
+        # Get all items in the DATASOURCES_DIR
+        items = os.listdir(DATASOURCES_DIR)
+        
+        # Filter out non-directory items
+        datasources = [item for item in items if os.path.isdir(os.path.join(DATASOURCES_DIR, item))]
+        
+        return JSONResponse(content={
+            "datasources": datasources
+        })
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error listing datasources: {str(e)}")
