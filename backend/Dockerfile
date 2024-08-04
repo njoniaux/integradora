@@ -2,14 +2,14 @@
 FROM python:3.11-slim
 
 # Set the working directory in the container
-WORKDIR /app
+WORKDIR /backend
 
 # Copy the requirements file
 COPY requirements.txt .
 
 # Create and activate virtual environment
 RUN python -m venv venv
-ENV PATH="/app/venv/bin:$PATH"
+ENV PATH="/backend/venv/bin:$PATH"
 
 # Install project dependencies
 RUN pip install --no-cache-dir -r requirements.txt
