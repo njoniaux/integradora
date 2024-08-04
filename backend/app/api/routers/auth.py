@@ -142,3 +142,13 @@ def role_required(allowed_roles: list):
             return await func(current_user=current_user, *args, **kwargs)
         return wrapper
     return decorator
+
+@auth_router.get("/verify_role")
+async def verify_role(required_role: Role, token: str = Depends(oauth2_scheme)):
+    current_user = await get_current_user(token)
+    if current_user.role != required_role:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have the required role",
+        )
+    return {"message": "Role verified", "user": current_user}
