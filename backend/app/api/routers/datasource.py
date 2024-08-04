@@ -85,7 +85,6 @@ async def generateDatasource(service_context: ServiceContext, datasource: str):
     print(f"Finished creating new index. Stored in {ds_storage_dir}")
 
 @datasource_router.get("/list")
-@role_required(["ADMIN", "TEACHER"])  # Adjust roles as needed
 async def list_datasources():
     try:
         # Get all items in the DATASOURCES_DIR
