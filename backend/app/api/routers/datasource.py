@@ -98,3 +98,25 @@ async def list_datasources():
         })
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error listing datasources: {str(e)}")
+    
+
+@datasource_router.get("/files/{datasource_id}")
+async def list_datasource_files(datasource_id: str):
+    try:
+        datasource_path = os.path.join(DATASOURCES_DIR, datasource_id)
+        print(f"Attempting to access directory: {datasource_path}")  # Debug print
+        
+        if not os.path.isdir(datasource_path):
+            print(f"Directory not found: {datasource_path}")  # Debug print
+            raise HTTPException(status_code=404, detail=f"Datasource '{datasource_id}' not found")
+        
+        items = os.listdir(datasource_path)
+        files = [item for item in items if os.path.isfile(os.path.join(datasource_path, item))]
+        
+        return JSONResponse(content={
+            "datasource_id": datasource_id,
+            "files": files
+        })
+    except Exception as e:
+        print(f"Error in list_datasource_files: {str(e)}")  # Debug print
+        raise HTTPException(status_code=500, detail=f"Error listing files: {str(e)}")
