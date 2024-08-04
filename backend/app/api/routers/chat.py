@@ -1,65 +1,63 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
-from typing import Optional, Sequence
+from typing import List, Optional
 from app.api.routers.auth import get_current_user, User
+from openai import OpenAI
 from app.utils.index import get_index
 from llama_index import ServiceContext
-from llama_index.llms.openai import OpenAI
-from llama_index.llms.base import ChatMessage, MessageRole
+from llama_index.llms.openai import OpenAI as LlamaOpenAI
 
 chat_router = APIRouter()
 
-class LLMConfig(BaseModel):
-    model: str
-    temperature: Optional[float] = None
-    topP: Optional[float] = None
-    maxTokens: int = 2000
-
-class Embedding(BaseModel):
-    text: str
-    embedding: Sequence[float]
+class Message(BaseModel):
+    role: str
+    content: str
 
 class ChatData(BaseModel):
     message: str
-    messages: Optional[Sequence[ChatMessage]] = None
+    messages: Optional[List[Message]] = None
     datasource: Optional[str] = None
-    config: Optional[LLMConfig] = None
-    embeddings: Optional[Sequence[Embedding]] = None
 
-def llm_from_config(config: Optional[LLMConfig]):
-    if config:
-        return OpenAI(
-            model=config.model,
-            temperature=config.temperature,
-            max_tokens=config.maxTokens,
-        )
-    else:
-        return OpenAI(model="gpt-3.5-turbo-16k")
+client = OpenAI()
 
 @chat_router.post("")
 async def chat(
     data: ChatData,
     current_user: User = Depends(get_current_user)
 ):
-    service_context = ServiceContext.from_defaults(llm=llm_from_config(data.config))
-    
     if not data.datasource:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="No datasource provided",
         )
 
+    messages = [{"role": m.role, "content": m.content} for m in (data.messages or [])]
+
+    service_context = ServiceContext.from_defaults(llm=LlamaOpenAI(model="gpt-3.5-turbo-16k"))
     index = get_index(service_context, data.datasource)
-    print(index)
-    messages = data.messages or []
-
     query_engine = index.as_query_engine()
-    response = query_engine.query(data.message)
+    context_response = query_engine.query(data.message)
 
-    print(response)
+    context_message = f"CONTEXT: {context_response}\n\nUSER QUERY: {data.message}"
+    messages.append({"role": "user", "content": context_message})
 
-    chat_engine = index.as_chat_engine()
-    response = chat_engine.chat(data.message, messages)
+    try:
+        completion = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=messages
+        )
 
-    return response
+        assistant_message = completion.choices[0].message.content
+
+        messages.append({"role": "assistant", "content": assistant_message})
+
+        return {
+            "response": assistant_message,
+            "messages": messages
+        }
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error in OpenAI API call: {str(e)}"
+        )
