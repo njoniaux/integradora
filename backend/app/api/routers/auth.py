@@ -88,7 +88,7 @@ async def login_for_access_token(user_data: UserLogin):
     )
     return {"access_token": access_token, "token_type": "bearer"}
 
-@auth_router.post("/register")
+@auth_router.post("/register", response_model=Token)
 async def register(user: UserRegister):
     conn = sqlite3.connect("user_database.db")
     cur = conn.cursor()
@@ -101,7 +101,13 @@ async def register(user: UserRegister):
         conn.close()
         raise HTTPException(status_code=400, detail="Email already registered")
     conn.close()
-    return {"message": "User registered successfully"}
+    
+    # Create and return access token
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user.email, "role": user.role}, expires_delta=access_token_expires
+    )
+    return {"access_token": access_token, "token_type": "bearer"}
 
 async def get_current_user(token: str = Depends(oauth2_scheme)):
     credentials_exception = HTTPException(
@@ -147,8 +153,5 @@ def role_required(allowed_roles: list):
 async def verify_role(required_role: Role, token: str = Depends(oauth2_scheme)):
     current_user = await get_current_user(token)
     if current_user.role != required_role:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You do not have the required role",
-        )
+        return {"message": "Role not is TEACHER", "user": current_user}
     return {"message": "Role verified", "user": current_user}
