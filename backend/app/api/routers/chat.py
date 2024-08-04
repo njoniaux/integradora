@@ -20,6 +20,11 @@ class ChatData(BaseModel):
 
 client = OpenAI()
 
+# Define the service context and default index outside the route
+service_context = ServiceContext.from_defaults(llm=LlamaOpenAI(model="gpt-3.5-turbo-16k"))
+default_datasource = "fundamentos_programacion"
+default_index = get_index(service_context, default_datasource)
+
 @chat_router.post("")
 async def chat(
     data: ChatData,
@@ -31,24 +36,33 @@ async def chat(
             detail="No datasource provided",
         )
 
+    # Prepare the messages for the API call
     messages = [{"role": m.role, "content": m.content} for m in (data.messages or [])]
 
-    service_context = ServiceContext.from_defaults(llm=LlamaOpenAI(model="gpt-3.5-turbo-16k"))
-    index = get_index(service_context, data.datasource)
+    # Use the default index or get a new one if the datasource is different
+    if data.datasource != default_datasource:
+        index = get_index(service_context, data.datasource)
+    else:
+        index = default_index
+
     query_engine = index.as_query_engine()
     context_response = query_engine.query(data.message)
 
+    # Add the context and user message to the messages list
     context_message = f"CONTEXT: {context_response}\n\nUSER QUERY: {data.message}"
     messages.append({"role": "user", "content": context_message})
 
     try:
+        # Make the API call to OpenAI
         completion = client.chat.completions.create(
-            model="gpt-4o-mini",
+            model="gpt-4o-mini",  # or your preferred model
             messages=messages
         )
 
+        # Extract the assistant's response
         assistant_message = completion.choices[0].message.content
 
+        # Add the assistant's response to the message history
         messages.append({"role": "assistant", "content": assistant_message})
 
         return {
