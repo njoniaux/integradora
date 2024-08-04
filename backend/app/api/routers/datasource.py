@@ -53,19 +53,19 @@ async def upload_files(files: List[UploadFile] = File(...), datasource_name: str
         chunk_overlap=DATASOURCES_CHUNK_OVERLAP
     )
     
-    try:
-        await generateDatasource(service_context, datasource_name)
-    except Exception as e:
-        # If datasource generation fails, clean up the temporary directory
-        shutil.rmtree(temp_dir)
-        raise HTTPException(status_code=500, detail=f"Error generating datasource: {str(e)}")
+    #try:
+    #    await generateDatasource(service_context, datasource_name)
+    #except Exception as e:
+    #    # If datasource generation fails, clean up the temporary directory
+    #    shutil.rmtree(temp_dir)
+    #    raise HTTPException(status_code=500, detail=f"Error generating datasource: {str(e)}")
     
     # Move files from temp directory to permanent datasource directory
     datasource_dir = os.path.join(DATASOURCES_DIR, datasource_name)
     shutil.move(temp_dir, datasource_dir)
     
     return JSONResponse(content={
-        "message": f"Uploaded {len(files)} files and created datasource '{datasource_name}'",
+        "message": f"Uploaded {len(files)} files and but didnt create datasource '{datasource_name}'",
         "datasource_name": datasource_name,
         "file_paths": file_paths
     })
