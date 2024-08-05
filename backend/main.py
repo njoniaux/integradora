@@ -30,8 +30,8 @@ if environment == "dev":
     )
 
 app.include_router(chat_router, prefix="/api/chat")
-app.include_router(datasource_router, prefix="/api/datasource")
-app.include_router(auth_router, prefix="/auth", tags=["auth"])
+app.include_router(datasource_router, prefix="/datasource", tags=["datasource"])
+app.include_router(auth_router, prefix='/auth')
 
 if __name__ == "__main__":
     uvicorn.run(app="main:app", host="0.0.0.0", reload=True)
